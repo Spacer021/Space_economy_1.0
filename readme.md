@@ -205,4 +205,4 @@ Para dúvidas, sugestões ou reportar bugs, utilize os canais oficiais do Space 
 
 ---
 
-*Este script é parte do portfólio da Space Store e foi desenvolvido para oferecer uma economia dinâmica e realista para servidores FiveM com QBCore.*
+*Este script é parte do portfólio da Space Store e foi desenvolvido para oferecer uma economia dinâmica e realista para servidores FiveM com QBCore e Qbox.*

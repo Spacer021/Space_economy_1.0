@@ -1,5 +1,5 @@
 
-# Space Economy - Sistema Econômico Dinâmico para QBCore
+# Space Economy - Sistema Econômico Dinâmico para QBCore e Qbox
 
 **Space Economy** é um script avançado e interativo para servidores FiveM que utilizam o framework QBCore. Ele cria um fluxo econômico mais realista, onde as transações dos jogadores geram impostos que alimentam um cofre central do governo. Administradores podem gerenciar esse cofre por meio de painéis NUI modernos.
 

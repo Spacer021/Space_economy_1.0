@@ -1,75 +1,106 @@
+Space Economy - Sistema Econômico Completo e Dinâmico
+Space Economy é um script avançado e interativo para servidores FiveM que utilizam o framework QBX, criando um ecossistema econômico realista e cheio de funcionalidades para o roleplay. O script introduz um sistema de taxação progressiva, um cofre governamental persistente, uma mecânica de inflação dinâmica, logs de auditoria detalhados e um sistema complexo de lavagem de dinheiro atrelado a empregos.
 
-# Space Economy - Sistema Econômico Dinâmico para QBCore e Qbox
+✨ Funcionalidades
+Sistema de Imposto Progressivo: Taxas calculadas com base em faixas de valor, tornando a tributação mais justa.
 
-**Space Economy** é um script avançado e interativo para servidores FiveM que utilizam o framework QBCore. Ele cria um fluxo econômico mais realista, onde as transações dos jogadores geram impostos que alimentam um cofre central do governo. Administradores podem gerenciar esse cofre por meio de painéis NUI modernos.
+Tesouro Centralizado: Impostos e taxas são depositados em um cofre governamental persistente no banco de dados.
 
-O sistema também inclui uma mecânica de dívidas para impostos não pagos, com consequências reais integradas a scripts policiais como `ps-dispatch` e `ps-mdt`.
+Sistema de Dívidas: Jogadores que recusam pagar taxas acumulam dívidas ativas.
 
----
+Inflação Dinâmica: A economia do servidor sofre flutuações periódicas e reage a injeções de dinheiro por administradores, afetando o poder de compra.
 
-## Features
+Painel de Admin via Blip: Um painel físico no mapa permite que administradores autorizados gerenciem a economia sem o uso de comandos. Os comandos /addcofre e /sacarcofre foram removidos para incentivar o uso do painel.
 
-- **Sistema de Imposto Progressivo:** Taxas calculadas com base em faixas de valor, tornando a tributação mais justa (configurável).
-- **Tesouro Centralizado:** Impostos arrecadados são depositados em um cofre governamental persistente no banco de dados.
-- **Sistema de Dívidas:** Jogadores que não pagam seus impostos acumulam dívidas ativas.
-- **Painéis NUI Modernos:** Interfaces intuitivas para jogadores (pagamento de taxas) e administradores (gerenciamento).
-- **Gerenciamento Administrativo Completo:** Comandos e painéis NUI para visualizar o cofre, adicionar/remover fundos, ver lista de devedores (com nome do personagem) e cobrar dívidas.
-- **Permissões Granulares:** Suporte a permissões por grupo (ACE) e por cargo/grade do QBCore.
-- **Integração com Polícia:** Ao cobrar dívidas não pagas, o sistema pode emitir alertas no `ps-dispatch` e criar mandados no `ps-mdt`.
-- **Integração com qbx_core:** Captura todas as transações financeiras (`RemoveMoney`) para aplicar a taxação automaticamente.
+Lavagem de Dinheiro por Emprego:
 
----
+Sistema modular para criar múltiplos "negócios de fachada".
 
-## Instalação
+Apenas jogadores com o emprego e cargo corretos podem lavar dinheiro.
 
-### 1. Instalação Básica
+O dono do negócio lava seu próprio dinheiro sujo (black_money por padrão).
 
-- Baixe o script e coloque a pasta `space_economy` dentro da sua pasta `resources`.
-- No seu `server.cfg` (ou `resources.cfg`), adicione:
+A taxa de lavagem é dinâmica, definida pelo jogador no painel (com mínimo e máximo configuráveis), e gera lucro para a conta da empresa (society account).
 
-  ```
-  ensure space_economy
-  ```
+O dinheiro limpo é depositado na conta pessoal do jogador, criando um ciclo econômico fechado.
 
-- Coloque essa linha preferencialmente depois das dependências `qbx_core`, `ox_lib` e `oxmysql`.
+Calculadora de Taxas (Item): Um item usável (tax_calculator) para o ox_inventory que permite a qualquer jogador calcular os impostos de uma compra antes de efetuá-la.
 
----
+Logs de Auditoria Híbridos: Sistema completo de logs que registra todas as ações importantes em:
 
-### 2. Banco de Dados (SQL)
+Arquivo de Texto (logs/economy_logs.txt)
 
-Execute os seguintes comandos SQL no seu banco de dados para criar as tabelas necessárias. Você pode usar o arquivo `.sql` pronto disponível na pasta `sql`.
+Webhook do Discord (com embeds coloridos por categoria)
 
-```sql
+Banco de Dados (com limpeza automática de registros antigos)
+
+Monitoramento Global de Dinheiro: Escuta todas as transações do servidor para registrar adições de dinheiro por menus de admin e outras fontes não rastreadas.
+
+Integração com Polícia: Emissão de alertas no ps-dispatch e criação de mandados no ps-mdt para devedores.
+
+Permissões Granulares: Suporte a permissões por ACE (group.admin) e por cargo/grade do QBX.
+
+🔗 Dependências
+qbx_core - Framework base.
+
+ox_lib - Biblioteca de utilidades (notificações, interface, etc.).
+
+oxmysql - Comunicação com o banco de dados.
+
+ox_inventory - Necessário para o item de dinheiro sujo e a calculadora.
+
+ps-banking - Obrigatório, usado para gerenciar as contas de empresa (society accounts) no sistema de lavagem.
+
+ps-dispatch (Opcional): Para alertas policiais em tempo real.
+
+ps-mdt (Opcional): Para registro permanente de mandados.
+
+🛠️ Instalação
+1. Instalação Básica
+Baixe o script e coloque a pasta space_economy dentro da sua pasta resources.
+
+No seu server.cfg, adicione a linha ensure space_economy. É crucial que esta linha venha depois de todas as dependências listadas acima.
+
+2. Banco de Dados (SQL)
+Execute os seguintes comandos SQL no seu banco de dados para criar as tabelas necessárias:
+
+-- Tabela principal de economia
 CREATE TABLE IF NOT EXISTS `space_economy` (
   `id` INT NOT NULL PRIMARY KEY,
   `vault` BIGINT NOT NULL DEFAULT 0,
   `inflation` FLOAT NOT NULL DEFAULT 1.0
 );
-
 INSERT INTO `space_economy` (`id`, `vault`, `inflation`) VALUES (1, 0, 1.0)
   ON DUPLICATE KEY UPDATE id = id;
 
+-- Tabela para dívidas dos jogadores
 CREATE TABLE IF NOT EXISTS `space_economy_debts` (
   `citizenid` VARCHAR(50) NOT NULL PRIMARY KEY,
   `amount` BIGINT NOT NULL,
   `reason` VARCHAR(255) DEFAULT NULL
 );
-```
 
----
+-- Tabela para os logs de auditoria
+CREATE TABLE IF NOT EXISTS `space_economy_logs` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+  `category` VARCHAR(50) NOT NULL,
+  `message` TEXT NOT NULL,
+  PRIMARY KEY (`id`)
+);
 
-### 3. Modificação Essencial no qbx_core
+🔌 Integrações com Outros Scripts
+Para o space_economy funcionar em seu potencial máximo, algumas integrações e configurações em outros scripts são obrigatórias.
 
-Esta etapa é obrigatória para o funcionamento correto do sistema de impostos, pois intercepta as transações financeiras.
+1. qbx_core (Modificação Obrigatória)
+Para que o sistema de impostos funcione, é essencial interceptar todas as transações de dinheiro.
 
-- Abra o arquivo:  
-  `[qbx]/qbx_core/server/player.lua`
+Abra o arquivo: [qbx]/qbx_core/server/player.lua
 
-- Localize a função `RemoveMoney` (aproximadamente entre as linhas 1296 e 1349).
+Localize a função RemoveMoney.
 
-- Substitua a função inteira pela versão abaixo (a única alteração relevante é a chamada para o export `space_economy:CalculateTax`):
+Substitua a função inteira pela versão abaixo. A única alteração é a adição do export que chama a calculadora de taxas.
 
-```lua
 ---@param identifier Source | string
 ---@param moneyType MoneyType
 ---@param amount number
@@ -102,12 +133,12 @@ function RemoveMoney(identifier, moneyType, amount, reason)
     -- Desconta o valor da compra imediatamente
     player.PlayerData.money[moneyType] = player.PlayerData.money[moneyType] - amount
 
-    -- // INÍCIO DA MODIFICAÇÃO - NÃO REMOVA ESTE BLOCO \ --
+    -- // INÍCIO DA MODIFICAÇÃO - NÃO REMOVA ESTE BLOCO // --
     -- Inicia cálculo da taxa econômica
     if amount > 0 and not player.Offline and (moneyType == 'cash' or moneyType == 'bank' or moneyType == 'crypto') then
         exports['space_economy']:CalculateTax(player.PlayerData.citizenid, amount, reason)
     end
-    -- \ FIM DA MODIFICAÇÃO // --
+    -- // FIM DA MODIFICAÇÃO // --
 
     if not player.Offline then
         UpdatePlayerData(identifier)
@@ -131,78 +162,85 @@ function RemoveMoney(identifier, moneyType, amount, reason)
 
     return true
 end
-```
 
----
+2. ox_inventory (Itens)
+Abra ox_inventory/data/items.lua e adicione os seguintes blocos:
 
-### 4. Configuração
+['black_money'] = {
+    label = 'Notas Marcadas',
+    weight = 0,
+    stack = true,
+    close = true,
+},
+['tax_calculator'] = {
+    label = 'Calculadora de Taxas',
+    weight = 150,
+    stack = false,
+    close = true,
+    client = {
+        event = 'space_economy:client:openCalculator',
+    },
+},
 
-- Abra o arquivo `config.lua` dentro da pasta `space_economy`.
-- Ajuste as permissões e demais opções conforme suas necessidades.
+Lembre-se de ter os ícones .png correspondentes na pasta de imagens do ox_inventory.
 
-Exemplo básico para permissões e alerta:
+3. Atividades Ilegais (Venda de Drogas, Roubos)
+Seus scripts de atividades ilegais devem recompensar os jogadores com o item black_money, em vez de dinheiro direto.
 
-```lua
--- Sistema de permissões por cargo e grade
-Config.Permissions = {
-    ['admin']    = { min_grade = 0 },
-    ['police']   = { min_grade = 2 },
-    ['governor'] = { min_grade = 0 },
+Exemplo: Encontre Player.Functions.AddMoney('cash', 10000) e substitua por Player.Functions.AddItem('black_money', 10000).
+
+4. ps-mdt (Mandados de Prisão)
+Abra o arquivo ps-mdt/config/charges.lua.
+
+Encontre a seção referente ao Código Penal 5 (geralmente [5]).
+
+Adicione a nova lei na lista. Exemplo completo da seção:
+
+-- Substitua toda a sua seção [5] por esta:
+[5] = {
+    -- ... (suas outras leis de [1] a [18] aqui) ...
+    [18] = {title = 'Resistência à Prisão', class = 'Misdemeanor', id = 'P.C. 5018', months = 5, fine = 300, color = 'orange', description = 'O ato de não permitir que os agentes da paz o prendam voluntariamente'},
+    
+    -- ADICIONE ESTA NOVA LEI
+    [19] = {title = 'Evasão de Dívida Governamental', class = 'Felony', id = 'P.C. 5019', months = 30, fine = 0, color = 'orange', description = 'Recusa em pagar dívidas ou impostos obrigatórios ao estado após notificação formal.'},
+},
+
+No config.lua do ps-mdt, confirme que a opção Config.UsingDefaultQBApartments está definida como false se você usar apartamentos customizados.
+
+5. ps-dispatch (Alertas)
+Abra o arquivo de configuração do seu ps-dispatch (geralmente config.lua) e adicione o seguinte código à sua tabela de blips/alertas:
+
+-- Adicionar dentro da sua tabela de alertas/blips
+['GOV_DEBT_WARRANT'] = {
+    radius = 0,      -- Alterado para 0 para marcar o local exato do indivíduo
+    sprite = 161,    -- Ícone de uma pessoa/suspeito
+    color = 1,       -- Vermelho
+    scale = 1.5,
+    length = 2,
+    sound = 'Lose_1st',
+    sound2 = 'GTAO_FM_Events_Soundset',
+    offset = false,
+    flash = false
 }
 
--- Mensagem de alerta para a polícia
-Config.WarrantAlert = {
-    title = "ALERTA DE MANDADO",
-    description = "Mandado de prisão e apreensão de bens emitido para %s (ID: %s) por dívida governamental não paga no valor de $%s. Todas as unidades, procedam com a captura.",
-    police_job_name = 'police' -- Nome do job da polícia no seu servidor (em minúsculas)
-}
-```
+⚙️ Configuração Principal (config.lua)
+O arquivo config.lua é o coração do script. Todas as funcionalidades são controladas por ele.
 
----
+Config.TaxBrackets: Defina as faixas e porcentagens para o imposto progressivo.
 
-## Comandos Administrativos
+Config.Permissions: Configure quais grupos (ACE) e cargos/grades (jobs) têm acesso às funcionalidades de admin.
 
-| Comando         | Argumentos           | Descrição                                                                                 |
-|-----------------|---------------------|-------------------------------------------------------------------------------------------|
-| `/vercofre`     | -                   | Abre painel NUI mostrando o saldo atual do cofre do governo.                             |
-| `/addcofre`     | -                   | Abre painel NUI para adicionar fundos ao cofre do governo.                              |
-| `/sacarcofre`   | -                   | Abre painel NUI para sacar fundos do cofre para o personagem (dinheiro em mãos).         |
-| `/verdividas`   | `[citizenid]` (opcional) | Lista as dívidas; sem ID lista as 20 maiores; com ID, busca dívidas específicas.          |
-| `/verdivida`    | `[citizenid]`        | Mostra detalhes da dívida de um cidadão específico.                                      |
-| `/cobrardivida` | `[citizenid]`        | Inicia cobrança interativa de dívida. Envia painel para o jogador pagar ou recusar.       |
+Config.Inflation: Ative/desative a inflação, defina o intervalo de atualização e o impacto da "impressão de dinheiro" por admins.
 
----
+Config.Logging: Controle granular sobre os logs. Ative/desative o log para arquivo, Discord e banco de dados. Configure sua WebhookURL e adicione motivos de transação a serem ignorados.
 
-## Exportações (API)
+Config.LaunderingFronts: Crie quantos negócios de fachada quiser, definindo o job_name, min_grade para operar, a localização, e os limites de taxa (min_fee_percent, max_fee_percent) e o limite diário de lavagem (max_daily_wash).
 
-Para integrar o sistema de taxas a outros scripts (lojas, multas, etc.), utilize o export no servidor:
+Config.DirtyMoneyItem: Defina o nome exato do item de dinheiro sujo que você usa no seu servidor.
 
-```lua
-exports['space_economy']:CalculateTax(citizenid, amount, reason)
-```
+🚀 Uso no Jogo
+Painel de Admin: A gestão do cofre e de dívidas é feita exclusivamente pelo painel físico no mapa, acessível apenas por jogadores com a permissão correta.
 
-- `citizenid` - Identificador do jogador.
-- `amount` - Valor da transação.
-- `reason` - Motivo da transação.
+Lavagem de Dinheiro: Jogadores com o cargo e grade corretos podem ir até o blip do seu negócio, interagir com [E], e abrir o painel de lavagem para processar seu próprio black_money.
 
-Isso abrirá automaticamente o painel de pagamento para o jogador.
-
----
-
-## Dependências
-
-- **qbx_core:** Framework base.
-- **ox_lib:** Sistema de notificações.
-- **oxmysql:** Comunicação com banco de dados.
-- **ps-dispatch (Opcional):** Para alertas policiais em tempo real.
-- **ps-mdt (Opcional):** Para registro permanente de mandados.
-
----
-
-## Contato e Suporte
-
-Para dúvidas, sugestões ou reportar bugs, utilize os canais oficiais do Space Store ou entre em contato diretamente.
-
----
-
-*Este script é parte do portfólio da Space Store e foi desenvolvido para oferecer uma economia dinâmica e realista para servidores FiveM com QBCore e Qbox.*
+Calculadora de Taxas: Qualquer jogador que possua o item tax_calculator pode usá-lo em seu inventário para abrir um painel e calcular os impostos de uma futura compra.
